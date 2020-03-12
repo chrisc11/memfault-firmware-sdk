@@ -14,6 +14,9 @@
 #include "nrf_log.h"
 #include "nrf_nvmc.h"
 #include "nrf_sdh.h"
+#include "nrf_sdh_soc.h"
+#include "nrf_soc.h"
+
 
 #include "memfault/core/compiler.h"
 #include "memfault/core/math.h"
@@ -22,6 +25,56 @@
 #ifndef MEMFAULT_PLATFORM_COREDUMP_CAPTURE_STACK_ONLY
 #  define MEMFAULT_PLATFORM_COREDUMP_CAPTURE_STACK_ONLY 1
 #endif
+
+typedef enum {
+  kMemfaultCoredumpClearState_Idle = 0,
+  kMemfaultCoredumpClearState_ClearRequested,
+  kMemfaultCoredumpClearState_ClearInProgress,
+} eMemfaultCoredumpClearState;
+
+static eMemfaultCoredumpClearState s_coredump_clear_state;
+
+#if NRF_SDH_ENABLED
+
+static void prv_handle_flash_op_complete(bool success) {
+  if (s_coredump_clear_state == kMemfaultCoredumpClearState_Idle) {
+    return; // not a flash op we care about
+  }
+
+  if (s_coredump_clear_state == kMemfaultCoredumpClearState_ClearInProgress &&
+      success) {
+    // The erase is complete!
+    s_coredump_clear_state = kMemfaultCoredumpClearState_Idle;
+    return;
+  }
+
+  if (!success) {
+    NRF_LOG_WARNING("Previous Coredump Clear Failed, retrying ...");
+  }
+
+  // we either havent kicked off a clear yet or our previous attempt
+  // was not successful and we need to retry
+  memfault_platform_coredump_storage_clear();
+}
+
+static void prv_coredump_handle_soc_update(uint32_t sys_evt, void * p_context) {
+  switch (sys_evt) {
+    case NRF_EVT_FLASH_OPERATION_SUCCESS:
+    case NRF_EVT_FLASH_OPERATION_ERROR: {
+      bool success = (sys_evt == NRF_EVT_FLASH_OPERATION_SUCCESS);
+      prv_handle_flash_op_complete(success);
+      break;
+    }
+
+    default:
+      break;
+  }
+}
+
+
+NRF_SDH_SOC_OBSERVER(m_soc_evt_observer, 0, prv_coredump_handle_soc_update, NULL);
+
+#endif /* NRF_SDH_ENABLED */
 
 // Linker defined symbols specifying the region to store coredumps to
 //
@@ -73,12 +126,15 @@ void memfault_platform_coredump_storage_clear(void) {
   // crash!)
 
   if (nrf_sdh_is_enabled()) {
+    s_coredump_clear_state = kMemfaultCoredumpClearState_ClearRequested;
     uint32_t rv = sd_flash_write((void *)CORE_REGION_START, &invalidate, 1);
+
     if (rv != NRF_SUCCESS) {
       NRF_LOG_ERROR("Unable to mark coredump as read, %d", rv);
+      s_coredump_clear_state = kMemfaultCoredumpClearState_ClearRequested;
+    } else {
+      s_coredump_clear_state = kMemfaultCoredumpClearState_ClearInProgress;
     }
-    // TODO: Should really wait for NRF_EVT_FLASH_OPERATION_SUCCESS or retry
-    // on error from the soft device
   } else {
     nrf_nvmc_write_word(CORE_REGION_START, invalidate);
   }
@@ -89,6 +145,20 @@ void memfault_platform_coredump_storage_get_info(sMfltCoredumpStorageInfo *info)
     .size = CORE_REGION_LENGTH,
     .sector_size = NRF_FICR->CODEPAGESIZE,
   };
+}
+
+//! Don't return any new data while a clear operation is in progress
+//!
+//! This prevents reading the same coredump again while an erase is in flight
+//!
+//! We implement this in memfault_coredump_read() so the logic is only run
+//! while the system is running.
+bool memfault_coredump_read(uint32_t offset, void *data, size_t read_len) {
+  if (s_coredump_clear_state != kMemfaultCoredumpClearState_Idle) {
+    return false;
+  }
+
+  return memfault_platform_coredump_storage_read(offset, data, read_len);
 }
 
 bool memfault_platform_coredump_storage_write(uint32_t offset, const void *data,
