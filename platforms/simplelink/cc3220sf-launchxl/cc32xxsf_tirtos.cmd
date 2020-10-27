@@ -41,11 +41,16 @@
 
 HEAPSIZE = 0x8000;  /* Size of heap buffer used by HeapMem */
 
+/* space reserved for saving coredumps on internal flash */
+/* must stay in sync with length of COREDUMP_STORAGE in MEMORY */
+COREDUMP_STORAGE_SIZE = 0x20000;
+
 MEMORY
 {
     /* Bootloader uses FLASH_HDR during initialization */
     FLASH_HDR (RX)  : origin = 0x01000000, length = 0x7FF      /* 2 KB */
-    FLASH     (RX)  : origin = 0x01000800, length = 0x0FF800   /* 1022KB */
+    FLASH     (RX)  : origin = 0x01000800, length = 0x0DF800   /* 894KB */
+    COREDUMP_STORAGE (RW) : origin = 0x10E0000, length = 0x20000 /* 128KB */
     SRAM      (RWX) : origin = 0x20000000, length = 0x00040000 /* 256KB */
     /* Explicitly placed off target for the storage of logging data.
      * The data placed here is NOT loaded onto the target device.
@@ -60,6 +65,7 @@ MEMORY
 /* Section allocation in memory */
 
 --retain "*(.resetVecs)"
+--retain=ulDebugHeader
 
 SECTIONS
 {
@@ -73,9 +79,24 @@ SECTIONS
     .pinit      : > FLASH
     .init_array : > FLASH
 
+    .coredump_storage : type=NOLOAD {
+        __coredump_storage_start__ = .;
+        . += COREDUMP_STORAGE_SIZE;
+        __coredump_storage_end__ = .;
+    } > COREDUMP_STORAGE
+
     .vecs       : > 0x20000000
-    .data       : > SRAM
-    .bss        : > SRAM
+    .data       : {
+       __data_start__ = .;
+       *(.data)
+       __data_end__ = .;
+    } > SRAM
+    .bss        : {
+        __bss_start__ = .;
+        memfault_port.obj(.bss)
+        *(.bss)
+        __bss_end__ = .;
+    } > SRAM
     .sysmem     : > SRAM
 
     /* Heap buffer used by HeapMem */

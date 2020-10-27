@@ -34,12 +34,17 @@
 #include <ti/drivers/net/wifi/slnetifwifi.h>
 #include <ti/display/Display.h>
 #include <ti/drivers/SPI.h>
+#include <ti/drivers/GPIO.h>
 
 #include "ti_drivers_config.h"
 #include "pthread.h"
 #include "semaphore.h"
+#include "demo_settings_config.h"
 
-#define APPLICATION_NAME                      "HTTP GET"
+#include "memfault/core/debug_log.h"
+#include "memfault/metrics/metrics.h"
+
+#define APPLICATION_NAME                      "Memfault Example"
 #define DEVICE_ERROR                          ("Device error, please refer \"DEVICE ERRORS CODES\" section in errors.h")
 #define WLAN_ERROR                            ("WLAN error, please refer \"WLAN ERRORS CODES\" section in errors.h")
 #define SL_STOP_TIMEOUT                       (200)
@@ -49,13 +54,8 @@
 #define SLNET_IF_WIFI_PRIO                    (5)
 #define SLNET_IF_WIFI_NAME                    "CC32xx"
 /* AP SSID */
-#define SSID_NAME                             "CiscoK3637"
 
-/* Security type could be SL_WLAN_SEC_TYPE_WPA_WPA2 */      
-#define SECURITY_TYPE                         SL_WLAN_SEC_TYPE_OPEN 
-
-/* Password of the secured AP */
-#define SECURITY_KEY                          ""                    
+#define SECURITY_TYPE                         SL_WLAN_SEC_TYPE_WPA_WPA2
 
 pthread_t httpThread = (pthread_t)NULL;
 pthread_t spawn_thread = (pthread_t)NULL;
@@ -65,19 +65,14 @@ Display_Handle display;
 
 extern void* httpTask(void* pvParameters);
 extern int32_t ti_net_SlNet_initConfig();
+extern void background_thread_start(void);
 
 /*
  *  ======== printError ========
  */
-void printError(char *errString,
-                int code)
-{
-    Display_printf(display, 0, 0, "Error! code = %d, Description = %s\n", code,
-                   errString);
-    while(1)
-    {
-        ;
-    }
+void printError(char *errString, int code) {
+  MEMFAULT_LOG_ERROR("Error! code = %d, Description = %s\n", code, errString);
+  while(1) { }
 }
 
 /*!
@@ -116,25 +111,29 @@ void SimpleLinkNetAppEventHandler(SlNetAppEvent_t *pNetAppEvent)
     {
     case SL_NETAPP_EVENT_IPV4_ACQUIRED:
     case SL_NETAPP_EVENT_IPV6_ACQUIRED:
+        memfault_metrics_heartbeat_add(MEMFAULT_METRICS_KEY(WifiConnectCount), 1);
+        memfault_metrics_heartbeat_timer_stop(MEMFAULT_METRICS_KEY(WifiConnectTimeMs));
+
         /* Initialize SlNetSock layer with CC3x20 interface                   */
         status = ti_net_SlNet_initConfig();
         if(0 != status)
         {
-            Display_printf(display, 0, 0, "Failed to initialize SlNetSock\n\r");
+          MEMFAULT_LOG_ERROR("Failed to initialize SlNetSock");
         }
 
         if(mode != ROLE_AP)
         {
-            Display_printf(display, 0, 0,"[NETAPP EVENT] IP Acquired: IP=%d.%d.%d.%d , "
-                        "Gateway=%d.%d.%d.%d\n\r",
-                        SL_IPV4_BYTE(pNetAppEvent->Data.IpAcquiredV4.Ip,3),
-                        SL_IPV4_BYTE(pNetAppEvent->Data.IpAcquiredV4.Ip,2),
-                        SL_IPV4_BYTE(pNetAppEvent->Data.IpAcquiredV4.Ip,1),
-                        SL_IPV4_BYTE(pNetAppEvent->Data.IpAcquiredV4.Ip,0),
-                        SL_IPV4_BYTE(pNetAppEvent->Data.IpAcquiredV4.Gateway,3),
-                        SL_IPV4_BYTE(pNetAppEvent->Data.IpAcquiredV4.Gateway,2),
-                        SL_IPV4_BYTE(pNetAppEvent->Data.IpAcquiredV4.Gateway,1),
-                        SL_IPV4_BYTE(pNetAppEvent->Data.IpAcquiredV4.Gateway,0));
+            MEMFAULT_LOG_INFO("[NETAPP EVENT] IP Acquired");
+            MEMFAULT_LOG_DEBUG("IP=%d.%d.%d.%d , "
+                               "Gateway=%d.%d.%d.%d",
+                               SL_IPV4_BYTE(pNetAppEvent->Data.IpAcquiredV4.Ip,3),
+                               SL_IPV4_BYTE(pNetAppEvent->Data.IpAcquiredV4.Ip,2),
+                               SL_IPV4_BYTE(pNetAppEvent->Data.IpAcquiredV4.Ip,1),
+                               SL_IPV4_BYTE(pNetAppEvent->Data.IpAcquiredV4.Ip,0),
+                               SL_IPV4_BYTE(pNetAppEvent->Data.IpAcquiredV4.Gateway,3),
+                               SL_IPV4_BYTE(pNetAppEvent->Data.IpAcquiredV4.Gateway,2),
+                               SL_IPV4_BYTE(pNetAppEvent->Data.IpAcquiredV4.Gateway,1),
+                               SL_IPV4_BYTE(pNetAppEvent->Data.IpAcquiredV4.Gateway,0));
 
             pthread_attr_init(&pAttrs);
             priParam.sched_priority = 1;
@@ -272,7 +271,7 @@ void SimpleLinkHttpServerEventHandler(
                    NWP programmer's
                    guide (SWRU455) sections 4.3.4, 4.4.5 and 4.5.5.
 
-    \sa             cmdWlanConnectCallback, cmdEnableFilterCallback, 
+    \sa             cmdWlanConnectCallback, cmdEnableFilterCallback,
     cmdWlanDisconnectCallback,
                     cmdP2PModecallback.
 
@@ -318,7 +317,7 @@ void SimpleLinkGeneralEventHandler(SlDeviceEvent_t *pDevEvent)
                    folder of the host driver and the  CC31xx/CC32xx NWP
                    programmer's
                    guide (SWRU455) section 7.6.
-                   
+
 
  */
 void SimpleLinkSockEventHandler(SlSockEvent_t *pSock)
@@ -328,12 +327,14 @@ void SimpleLinkSockEventHandler(SlSockEvent_t *pSock)
 
 void Connect(void)
 {
+
+    memfault_metrics_heartbeat_timer_start(MEMFAULT_METRICS_KEY(WifiConnectTimeMs));
     SlWlanSecParams_t secParams = {0};
     int16_t ret = 0;
     secParams.Key = (signed char*)SECURITY_KEY;
     secParams.KeyLen = strlen(SECURITY_KEY);
     secParams.Type = SECURITY_TYPE;
-    Display_printf(display, 0, 0, "Connecting to : %s.\r\n",SSID_NAME);
+    MEMFAULT_LOG_DEBUG("Connecting to : %s", SSID_NAME);
     ret = sl_WlanConnect((signed char*)SSID_NAME, strlen(
                              SSID_NAME), 0, &secParams, 0);
     if(ret)
@@ -371,7 +372,8 @@ void mainThread(void *pvParameters)
     int32_t status = 0;
     pthread_attr_t pAttrs_spawn;
     struct sched_param priParam;
-	
+
+    GPIO_init();
     SPI_init();
     Display_init();
     display = Display_open(Display_Type_UART, NULL);
@@ -383,6 +385,9 @@ void mainThread(void *pvParameters)
             ;
         }
     }
+
+    extern void memfault_port_boot(void);
+    memfault_port_boot();
 
     /* Print Application name */
     DisplayBanner(APPLICATION_NAME);
@@ -399,6 +404,8 @@ void mainThread(void *pvParameters)
         printError("Task create failed", status);
     }
 
+    background_thread_start();
+
     /* Turn NWP on - initialize the device*/
     mode = sl_Start(0, 0, 0);
     if (mode < 0)
@@ -412,20 +419,20 @@ void mainThread(void *pvParameters)
         mode = sl_WlanSetMode(ROLE_STA);
         if (mode < 0)
         {
-            Display_printf(display, 0, 0,"\n\r[line:%d, error code:%d] %s\n\r", __LINE__, mode, WLAN_ERROR);
+          MEMFAULT_LOG_ERROR("\n\r[line:%d, error code:%d] %s\n\r", __LINE__, mode, WLAN_ERROR);
         }
 
         /* For changes to take affect, we restart the NWP */
         status = sl_Stop(SL_STOP_TIMEOUT);
         if (status < 0)
         {
-            Display_printf(display, 0, 0,"\n\r[line:%d, error code:%d] %s\n\r", __LINE__, status, DEVICE_ERROR);
+            MEMFAULT_LOG_ERROR("\n\r[line:%d, error code:%d] %s\n\r", __LINE__, status, DEVICE_ERROR);
         }
 
         mode = sl_Start(0, 0, 0);
         if (mode < 0)
         {
-            Display_printf(display, 0, 0,"\n\r[line:%d, error code:%d] %s\n\r", __LINE__, mode, DEVICE_ERROR);
+            MEMFAULT_LOG_ERROR("\n\r[line:%d, error code:%d] %s\n\r", __LINE__, mode, DEVICE_ERROR);
         }
     }
 

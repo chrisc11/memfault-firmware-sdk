@@ -15,4 +15,5 @@
 	<templateProperties value="id=httpget_CC3220SF_LAUNCHXL_tirtos_ccs.projectspec.httpget_CC3220SF_LAUNCHXL_tirtos_ccs,buildProfile=release,isHybrid=true"/>
 	<origin value="/Users/chrisc/ti/simplelink_cc32xx_sdk_4_30_00_06/examples/rtos/CC3220SF_LAUNCHXL/demos/httpget/tirtos/ccs/httpget_CC3220SF_LAUNCHXL_tirtos_ccs.projectspec"/>
 	<filesToOpen value=""/>
+	<isTargetManual value="false"/>
 </projectOptions>

@@ -1,0 +1,6 @@
+// The time we spent sending data over the last hour
+MEMFAULT_METRICS_KEY_DEFINE(HttpSendTimeMs, kMemfaultMetricType_Timer)
+// The number of Wifi Connections over the last hour
+MEMFAULT_METRICS_KEY_DEFINE(WifiConnectCount, kMemfaultMetricType_Unsigned)
+// The amount of time spent trying to connect to wifi
+MEMFAULT_METRICS_KEY_DEFINE(WifiConnectTimeMs, kMemfaultMetricType_Timer)

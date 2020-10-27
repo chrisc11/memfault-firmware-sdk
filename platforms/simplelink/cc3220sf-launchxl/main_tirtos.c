@@ -54,6 +54,15 @@ extern void * mainThread(void *arg0);
 /* Stack size in bytes */
 #define THREADSTACKSIZE    4096
 
+
+// Make it possible to start a development image across resets
+#pragma DATA_SECTION(ulDebugHeader, ".dbghdr")
+const unsigned long ulDebugHeader[] = {
+    0x5AA5A55A,
+    0x0DF800,
+    0xEFA3247D
+};
+
 /*
  *  ======== main ========
  */
