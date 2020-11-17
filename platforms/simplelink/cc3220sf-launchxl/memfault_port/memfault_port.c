@@ -4,7 +4,9 @@
 //! for the TI's Simplelink SDK / CC3220SF
 
 #include <time.h>
+#include <stdio.h>
 
+#include "memfault/core/build_info.h"
 #include "memfault/core/compiler.h"
 #include "memfault/core/debug_log.h"
 #include "memfault/core/log.h"
@@ -39,13 +41,27 @@ void memfault_platform_log(eMemfaultPlatformLogLevel level, const char *fmt, ...
   va_end(args);
 }
 
-#define SOFTWARE_VERSION "1.0.0+" __TIME__
+#define SOFTWARE_VERSION "1.0.0"
+
+// The number of characters from the Memfault Build ID to be included in
+// the version reported. This ID is a SHA256 over the contents of the binary
+// and therefore will be unique per build.
+#define SOFTWARE_VERSION_BUILD_ID_NUM_CHARS 6
+
+
+static char s_firmware_version[sizeof("255.255.255") + 6];
+
+void prv_init_software_version(void) {
+  char build_id[SOFTWARE_VERSION_BUILD_ID_NUM_CHARS + 1 /* for '\0' */] = { 0 };
+  memfault_build_id_get_string(build_id, sizeof(build_id));
+  snprintf(s_firmware_version, sizeof(s_firmware_version), "%s+%s", SOFTWARE_VERSION, build_id);
+}
 
 void memfault_platform_get_device_info(sMemfaultDeviceInfo *info) {
   *info = (sMemfaultDeviceInfo) {
     .device_serial = "DEMOSERIAL",
     .software_type = "wifi-fw",
-    .software_version = SOFTWARE_VERSION,
+    .software_version = s_firmware_version,
     .hardware_version = "launchxl",
   };
 }
@@ -176,9 +192,14 @@ static void prv_capture_reboot_reason(void) {
 static uint8_t s_log_buf_storage[512];
 
 void memfault_port_boot(void) {
+  prv_init_software_version();
+
   memfault_log_boot(s_log_buf_storage, sizeof(s_log_buf_storage));
 
   MEMFAULT_LOG_INFO("Initializing Memfault Subsystem");
+
+  memfault_build_info_dump();
+  MEMFAULT_LOG_INFO("Firmware Version: %s", s_firmware_version);
 
   // Install Memfault Fault Handlers in Vector Table for Exceptions
   Hwi_plug(3, HardFault_Handler);
