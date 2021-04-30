@@ -1,0 +1,6 @@
+
+name: memfault
+
+build:
+  cmake: ports/nrf-connect-sdk/zephyr
+  kconfig: ports/nrf-connect-sdk/zephyr/Kconfig
