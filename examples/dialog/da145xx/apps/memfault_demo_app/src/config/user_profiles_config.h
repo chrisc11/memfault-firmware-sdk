@@ -36,8 +36,9 @@
 /* Used BLE profiles (used by "rwprf_config.h").                                       */
 /***************************************************************************************/
 
-#define CFG_PRF_DISS
+#if !defined (__DA14531__)
 #define CFG_PRF_CUST1
+#define CFG_PRF_DISS
 
 /***************************************************************************************/
 /* Profile application configuration section                                           */
@@ -113,6 +114,8 @@
  */
 #define APP_DIS_PNP_ID                  ("\x01\xD2\x00\x80\x05\x00\x01")
 #define APP_DIS_PNP_ID_LEN              (7)
+
+#endif
 
 /// @} APP_CONFIG
 

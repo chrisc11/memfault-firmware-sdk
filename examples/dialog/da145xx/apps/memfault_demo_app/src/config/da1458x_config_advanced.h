@@ -205,8 +205,7 @@
 /****************************************************************************************************************/
 /* Maximum uninitialized retained data required by the application.                                             */
 /****************************************************************************************************************/
-// TODO - need to tune this, amount of memory used for uninitialized section might be less than 2048 bytes...
-#define CFG_RET_DATA_UNINIT_SIZE (2048)
+#define CFG_RET_DATA_UNINIT_SIZE (64)
 
 /****************************************************************************************************************/
 /* The Keil scatter file may be provided by the user. If the user provides his own scatter file, the system has */

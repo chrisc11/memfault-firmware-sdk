@@ -42,6 +42,12 @@ void memfault_platform_get_device_info(sMemfaultDeviceInfo *info) {
     .device_serial = s_device_serial,
     .hardware_version = APP_DIS_HARD_REV_STR,
     .software_version = s_fw_version,
-    .software_type = "da145xx-demo-app",
+#if defined (__DA14531__)
+    .software_type = "da14531-demo-app",
+#elif defined (__DA14586__)
+    .software_type = "da14586-demo-app",
+#else
+    .software_type = "da14585-demo-app",
+#endif
   };
 }

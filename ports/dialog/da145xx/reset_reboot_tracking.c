@@ -13,8 +13,16 @@
 
 #include "datasheet.h"
 
+#if defined(__CC_ARM)
+// To prevent this array from being initialized when using the ARM compiler it must
+// be defined as follows. See https://developer.arm.com/documentation/ka003046/latest
+// for further information.
+static uint8_t s_reboot_tracking[MEMFAULT_REBOOT_TRACKING_REGION_SIZE]
+                 __attribute__((section("retention_mem_area0"), zero_init));
+#else
 static uint8_t s_reboot_tracking[MEMFAULT_REBOOT_TRACKING_REGION_SIZE]
     __SECTION("retention_mem_area_uninit");
+#endif
 
 // Since "reset_indication" is called before memfault_platform_boot()
 // is called we store the state in static variables for access later on in the boot

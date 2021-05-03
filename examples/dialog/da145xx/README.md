@@ -52,6 +52,8 @@ The demo app is compatible with the following DA145xx Development Kit boards:
 
 [DA14585 Development Kit PRO](https://www.dialog-semiconductor.com/products/bluetooth-low-energy/da14585-development-kit-pro)
 
+[DA14531 Development Kit PRO](https://www.dialog-semiconductor.com/products/bluetooth-low-energy/da14530-and-da14531-development-kit-pro)
+
 ### Hardware Configuration
 
 **DA14585 Development Kit PRO configuration**
@@ -60,6 +62,13 @@ The jumpers on the DA14585 Development Kit PRO board must be configured as shown
 below when running this example (and the jumper wires shown must be added):
 
 ![DA14585 Development Kit PRO configuration](docs/da14585_pro_dk.png)
+
+**DA14531 Development Kit PRO configuration**
+
+The jumpers on the DA14531 Development Kit PRO board must be configured as shown
+below when running this example (and the jumper wires shown must be added):
+
+![DA14531 Development Kit PRO configuration](docs/da14531_pro_dk.png)
 
 ### Building the demo app
 
@@ -84,6 +93,27 @@ can be found in the following location:
 Build the application and then program into the flash memory contained on the
 Development Kit board.
 
+**NOTE:** A SmartSnippets Studio project is not available for the DA14531 based
+example as building the example with the GCC compiler exhausts the available
+memory. Use the Keil toolchain to build the example for the DA14531 (see
+instructions below).
+
+#### Keil MDK
+
+First, a number of changes must be made to the Dialog SDK to enable integration
+of memfault support. To make these changes navigate to the root of the Dialog
+SDK and apply the following patch:
+
+`git apply --ignore-whitespace third_party/memfault/memfault-firmware-sdk/ports/dialog/da145xx/armcc-fault-handler.patch`
+
+Next, use the Keil IDE to open the demo application project, which can be found
+in the following location:
+
+`<DIALOG_SDK_ROOT>\third_party\memfault\memfault-firmware-sdk\examples\dialog\da145xx\apps\memfault_demo_app`
+
+Build the application and then program into the flash memory contained on the
+Development Kit board.
+
 ### Running the demo app
 
 The demo app is a simple console based app that has commands to cause a crash in
@@ -104,7 +134,7 @@ sending the command listed:
 - trace: Generate a trace event
 - get_core: Get coredump
 - clear_core: Clear coredump
-- test_storage: Test coredump storage
+- test_storage: Test coredump storage (not available on the DA14531)
 - get_device_info: Display device information
 - reboot: Reboot & record event
 - export: Export chunk

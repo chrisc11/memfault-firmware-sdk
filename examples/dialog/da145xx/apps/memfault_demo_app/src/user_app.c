@@ -59,10 +59,12 @@ static int prv_export_data(MEMFAULT_UNUSED int argc, MEMFAULT_UNUSED char *argv[
 static const sMemfaultShellCommand s_memfault_shell_commands[] = {
   {"crash", memfault_demo_cli_cmd_crash, ""},
   {"trace", memfault_demo_cli_cmd_trace_event_capture, ""},
+#if !defined (__DA14531__) // Don't use on DA14531 to reduce memory usage
   {"get_core", memfault_demo_cli_cmd_get_core, ""},
   {"clear_core", memfault_demo_cli_cmd_clear_core, ""},
   {"test_storage", prv_test_storage, ""},
   {"get_device_info", memfault_demo_cli_cmd_get_device_info, ""},
+#endif
   {"reboot", memfault_demo_cli_cmd_system_reboot, ""},
   {"export", prv_export_data, ""},
   {"help", memfault_shell_help_handler, ""},

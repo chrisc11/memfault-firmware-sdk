@@ -59,6 +59,11 @@ void set_pad_functions(void)
     i.e. to set P0_1 as Generic purpose Output:
     GPIO_ConfigurePin(GPIO_PORT_0, GPIO_PIN_1, OUTPUT, PID_GPIO, false);
 */
+#if defined (__DA14531__)
+    /* P0_0 is used as both the SPI data out and the reset input. */
+    GPIO_Disable_HW_Reset();
+#endif
+
     GPIO_ConfigurePin(SPI_EN_PORT, SPI_EN_PIN, OUTPUT, PID_SPI_EN, true);
     GPIO_ConfigurePin(SPI_CLK_PORT, SPI_CLK_PIN, OUTPUT, PID_SPI_CLK, false);
     GPIO_ConfigurePin(SPI_DO_PORT, SPI_DO_PIN, OUTPUT, PID_SPI_DO, false);

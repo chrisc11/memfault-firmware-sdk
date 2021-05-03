@@ -28,6 +28,13 @@ extern "C" {
 #define MEMFAULT_USE_GNU_BUILD_ID 1
 #endif
 
+#if defined (__DA14531__)
+// Disable RLE compression of coredumps saving code space.
+#define MEMFAULT_DATA_SOURCE_RLE_ENABLED 0
+#define MEMFAULT_TRACE_EVENT_WITH_LOG_FROM_ISR_ENABLED 0
+#define MEMFAULT_EVENT_STORAGE_READ_BATCHING_ENABLED 0
+#endif
+
 #ifdef __cplusplus
 }
 #endif

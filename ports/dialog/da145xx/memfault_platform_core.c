@@ -9,7 +9,11 @@
 #include "datasheet.h"
 
 #if !defined(MEMFAULT_EVENT_STORAGE_RAM_SIZE)
+#if defined (__DA14531__)
+#define MEMFAULT_EVENT_STORAGE_RAM_SIZE 256
+#else
 #define MEMFAULT_EVENT_STORAGE_RAM_SIZE 512
+#endif
 #endif
 
 int memfault_platform_boot(void) {
