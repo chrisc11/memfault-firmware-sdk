@@ -102,6 +102,15 @@ extern "C" {
 #define MEMFAULT_EVENT_STORAGE_READ_BATCHING_ENABLED 0
 #endif
 
+//! Enables support for the non-volatile event storage at compile time
+//! instead of dynamically at runtime
+//!
+//! Disabling this feature saves several hundred bytes of codespace and can be useful to enable for
+//! extremely constrained environments
+#ifndef MEMFAULT_EVENT_STORAGE_NV_SUPPORT_ENABLED
+#define MEMFAULT_EVENT_STORAGE_NV_SUPPORT_ENABLED 1
+#endif
+
 #if MEMFAULT_EVENT_STORAGE_READ_BATCHING_ENABLED != 0
 
 //! When batching is enabled, controls the maximum amount of event data bytes
@@ -279,6 +288,11 @@ extern "C" {
 #ifndef MEMFAULT_DEMO_CLI_USER_CHUNK_SIZE
 // Note: Arbitrary default size for CLI command. Can be as small as 9 bytes.
 #define MEMFAULT_DEMO_CLI_USER_CHUNK_SIZE 1024
+#endif
+
+//! The maximum length supported for a single CLI command
+#ifndef MEMFAULT_DEMO_SHELL_RX_BUFFER_SIZE
+#define MEMFAULT_DEMO_SHELL_RX_BUFFER_SIZE 64
 #endif
 
 //
