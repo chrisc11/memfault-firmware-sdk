@@ -26,6 +26,13 @@ config MEMFAULT_NRF_SHELL
         help
           CLI Utilities for interfacing with the nRF Connect SDK
 
+
+config MEMFAULT_INTERNAL_FLASH_BACKED_COREDUMP
+        bool "When set to true, saves coredumps to internal flash"
+        default n
+        help
+         hey
+
 if MEMFAULT_FOTA
 
 config MEMFAULT_FOTA_CLI_CMD
