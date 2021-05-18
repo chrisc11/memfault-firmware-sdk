@@ -101,6 +101,18 @@ bool memfault_coredump_storage_debug_test_begin(void);
 //!  to the CLI for further debug.
 bool memfault_coredump_storage_debug_test_finish(void);
 
+#if MEMFAULT_CACHE_FAULT_REGS
+//! Defined in memfault_coredump_regions_armv7.c but needed for platform ports,
+//! like Zephyr, this function will allow the port to capture the ARM fault
+//! registers into a RAM buffer cache. The coredump region getter will
+//! use the cached copy if MEMFAULT_CACHE_FAULT_REGS is defined.
+//!
+//! @note the intent is to call this function before the port starts consuming
+//! the register values by wrapping the port's fault handler and then chaining
+//! to it after saving the registers.
+void memfault_coredump_cache_fault_regs(void);
+#endif
+
 #ifdef __cplusplus
 }
 #endif
